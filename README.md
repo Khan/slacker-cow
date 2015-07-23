@@ -1,0 +1,35 @@
+# Slacker Cow :cow:
+> Hubot instance for Khan Academy, Slack Edition.
+
+## What it means to be Slacker Cow
+
+1. Slacker Cow provides a steady drip of Khan Academy culture, straight into
+Slack's veins.
+
+2. If at any point Slacker Cow acts like an annoying robot by decreasing the
+signal:noise ratio in our Slack rooms, it will be turned into delicious
+hamburgers. :hamburger:
+
+## Can I add more culture magic?
+
+Absolutely. Modify `scripts/culture.js` (or whatever else you want). Just abide
+by the two rules of Slacker Cow above.
+
+Also note that since the [Slack API] is _much_ more robust than Hipchat was, you
+may prefer to make something using that directly.
+
+[Slack API]: https://api.slack.com
+
+## Differences from Culture Cow
+
+Culture Cow communicated via XMPP for Hubot, but used a custom HTTP adapter
+to send formatted messages (`fancyMessage`) back separately via the HipChat API.
+
+The Slack Hubot adapter uses their realtime API, and should support formatting.
+
+To make nicely formatted Slack messages, see the following:
+- https://api.slack.com/docs/formatting
+- https://api.slack.com/docs/attachments
+
+Discussion of how to send attachments via hubot-slack:
+- https://github.com/slackhq/hubot-slack/issues/170
