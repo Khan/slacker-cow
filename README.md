@@ -33,3 +33,18 @@ To make nicely formatted Slack messages, see the following:
 
 Discussion of how to send attachments via hubot-slack:
 - https://github.com/slackhq/hubot-slack/issues/170
+
+## Making a deploy
+
+### Prerequisites
+
+- Set up your gcloud environment as [per instructions]: https://cloud.google.com/container-engine/docs/before-you-begin#install_the_gcloud_command_line_interface
+- Install vagrant, virtualbox, and boot2docker:
+  ```
+  brew cask install vagrant virtualbox
+  brew install boot2docker
+  ```
+- make changes
+- build the container with `docker build -t gcr.io/slacker-cow/hubot .`
+- push the container with `gcloud docker push gcr.io/slacker-cow/hubot`
+- that's it!

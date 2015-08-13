@@ -2,33 +2,37 @@
    "kind":"ReplicationController",
    "apiVersion":"v1",
    "metadata":{
-      "name":"frontend",
+      "name":"frontend-v2",
       "labels":{
          "name":"frontend"
       }
    },
    "spec":{
-      "replicas":2,
+      "replicas":1,
       "selector":{
-         "name":"frontend"
+         "name":"frontend-v2"
       },
       "template":{
          "metadata":{
             "labels":{
-               "name":"frontend"
+               "name":"frontend-v2"
             }
          },
          "spec":{
             "containers":[
                {
                   "name":"slacker-cow",
-                  "image":"gcr.io/slacker-cow/hubot",
+                  "image":"gcr.io/slacker-cow/hubot:latest",
                   "ports":[
                      {
                         "containerPort":8080,
                         "protocol":"TCP"
                      }
-                  ]
+                   ],
+                   "env":[{
+                     "name":"HUBOT_SLACK_TOKEN",
+                     "value":"XXX-REPLACE-ME-WITH-SLACK-TOKEN"
+                   }]
                }
             ]
          }
