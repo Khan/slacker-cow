@@ -47,4 +47,9 @@ Discussion of how to send attachments via hubot-slack:
 - make changes
 - build the container with `docker build -t gcr.io/slacker-cow/hubot .`
 - push the container with `gcloud docker push gcr.io/slacker-cow/hubot`
+- edit `kubecfg/frontend-controller.json`:
+  1. increment `frontend-v[x]` to a higher number wherever you see it
+  2. change `XXX-REPLACE-ME-WITH-SLACK-TOKEN` to the correct token
+- run `kubectl rolling-update frontend-v[x] -f kubecfg/frontend-controller.json`
+  where v[x] is the old version
 - that's it!
