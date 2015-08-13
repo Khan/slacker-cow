@@ -38,8 +38,10 @@ Discussion of how to send attachments via hubot-slack:
 
 ### Prerequisites
 
-- Set up your gcloud environment as [per instructions]: https://cloud.google.com/container-engine/docs/before-you-begin#install_the_gcloud_command_line_interface
-- Install vagrant, virtualbox, and boot2docker:
+- Set up your gcloud environment as [per instructions]
+
+[per instructions]: https://cloud.google.com/container-engine/docs/before-you-begin#install_the_gcloud_command_line_interface
+1. Install vagrant, virtualbox, and boot2docker:
   ```
   brew cask install vagrant virtualbox
   brew install boot2docker
