@@ -241,6 +241,13 @@ function handleAfterSetDefault(msg) {
   setNextPipelineCommands({"cancel": msg.match[1]});
 }
 
+function handleFailedSetDefault(msg) {
+    // In the case of a failed set-default, the only thing Sun knows how to do
+    // is abort and roll back.  If someone wants to manually set default,
+    // they'll have to finish up on their own (Mr. Gorilla posts a link).
+    setNextPipelineCommands({"abort": msg.match[1]});
+};
+
 function handleAfterMonitoring(msg) {
   setNextPipelineCommands(
     {
@@ -287,6 +294,7 @@ export default robot => {
   hearInDeployRoom(robot, /\(failed\) abort: https:\/\/jenkins.khanacademy.org(.*\/stop)$/, handleAfterStart);
   hearInDeployRoom(robot, /\(successful\) set it as default: type 'sun, set default' or visit https:\/\/jenkins.khanacademy.org\/job\/([^\/]*)\/parambuild\?([^\n]*)\n\(failed\) abort the deploy: type 'sun, abort' or visit https:\/\/jenkins.khanacademy.org\/job\/([^\/]*)\/parambuild\?(.*)/, handleAfterDeploy);
   hearInDeployRoom(robot, /\(failed\) abort and rollback: https:\/\/jenkins.khanacademy.org(.*\/stop)$/, handleAfterSetDefault);
+  hearInDeployRoom(robot, /set-default failed.*\(failed\) abort and roll back https:\/\/jenkins.khanacademy.org(.*rollback.*aborted)$/, handleFailedSetDefault);
   hearInDeployRoom(robot, /\(successful\) finish up: type 'sun, finish up' or visit https:\/\/jenkins.khanacademy.org\/job\/([^\/]*)\/parambuild\?([^\n]*)\n\(failed\) abort and roll back: type 'sun, abort' or visit https:\/\/jenkins.khanacademy.org\/job\/([^\/]*)\/parambuild\?(.*)/, handleAfterMonitoring);
   hearInDeployRoom(robot, /Deploy of .* (failed[:.]|succeeded!)/, handleDeployDone);
   hearInDeployRoom(robot, /has manually released the deploy lock/, handleDeployDone);
