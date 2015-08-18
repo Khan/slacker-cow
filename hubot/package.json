@@ -5,6 +5,8 @@
   "author": "Matthew Rothenberg <mroth@khanacademy.org>",
   "description": "A simple helpful robot for your Company",
   "dependencies": {
+    "babel": "^5.8",
+    "coffee-script": "*",
     "hubot": "^2.13.2",
     "hubot-diagnostics": "0.0.1",
     "hubot-help": "^0.1.1",
@@ -13,6 +15,6 @@
     "hubot-slack": "^3.3.0"
   },
   "engines": {
-    "node": "0.10.x"
+    "node": "0.12.x"
   }
 }
