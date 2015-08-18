@@ -38,16 +38,17 @@ Discussion of how to send attachments via hubot-slack:
 
 ### Prerequisites
 
-- Set up your gcloud environment as [per instructions]. (Note that you can use
-`brew cask install google-cloud-sdk` instead of their installer, though.)
+- Set up your gcloud environment as [per instructions][gcloud-install]. (Note
+  that you can use `brew cask install google-cloud-sdk` instead of their
+  installer, though.)
+  1. Install vagrant, virtualbox, and docker-machine:
 
-[per instructions]: https://cloud.google.com/container-engine/docs/before-you-begin#install_the_gcloud_command_line_interface
-1. Install vagrant, virtualbox, and docker-machine:
-  ```
-  brew cask install vagrant virtualbox
-  brew install docker-machine
-  docker-machine create --driver virtualbox khan
-  ```
+        ```
+        brew cask install vagrant virtualbox
+        brew install docker-machine
+        docker-machine create --driver virtualbox khan
+        ```
+
 - make changes
 - build the container with `docker build -t gcr.io/slacker-cow/hubot .`
 - push the container with `gcloud docker push gcr.io/slacker-cow/hubot`
@@ -55,5 +56,7 @@ Discussion of how to send attachments via hubot-slack:
   1. increment `frontend-v[x]` to a higher number wherever you see it
   2. change `XXX-REPLACE-ME-WITH-SLACK-TOKEN` to the correct token
 - run `kubectl rolling-update frontend-v[x] -f kubecfg/frontend-controller.json`
-  where v[x] is the old version
+  where `v[x]` is the old version
 - that's it!
+
+[gcloud-install]: https://cloud.google.com/container-engine/docs/before-you-begin#install_the_gcloud_command_line_interface
