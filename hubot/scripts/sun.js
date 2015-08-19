@@ -23,7 +23,7 @@
  *   csilvers
  */
 
-var http        = require('http'),
+var https       = require('https'),
     querystring = require("querystring"),
     queue       = require("../libs/deploy-queue.js");
 
@@ -100,7 +100,7 @@ var runOnJenkins = function(msg, postData, hipchatMessage) {
 
     var options = {
         hostname: 'jenkins.khanacademy.org',
-        port: 80,
+        port: 443,
         path: '/buildByToken/buildWithParameters',
         method: 'POST'
     };
@@ -121,7 +121,7 @@ var runOnJenkins = function(msg, postData, hipchatMessage) {
         return;
     }
 
-    var req = http.request(options, function(res) {
+    var req = https.request(options, function(res) {
         if (res.statusCode !== 200) { onHttpError(res); }
     });
 
@@ -277,10 +277,10 @@ module.exports = function(robot) {
     hearInDeployRoom(robot, /^sun,\s+add\s+me.*/i, handleAdd);
 
     // These are the Jenkins-emitted hipchat messages we listen for.
-    hearInDeployRoom(robot, /\(failed\) abort: http:\/\/jenkins.khanacademy.org(.*\/stop)$/, handleAfterStart);
-    hearInDeployRoom(robot, /\(successful\) set it as default: type 'sun, set default' or visit http:\/\/jenkins.khanacademy.org\/job\/([^\/]*)\/parambuild\?([^\n]*)\n\(failed\) abort the deploy: type 'sun, abort' or visit http:\/\/jenkins.khanacademy.org\/job\/([^\/]*)\/parambuild\?(.*)/, handleAfterDeploy);
-    hearInDeployRoom(robot, /\(failed\) abort and rollback: http:\/\/jenkins.khanacademy.org(.*\/stop)$/, handleAfterSetDefault);
-    hearInDeployRoom(robot, /\(successful\) finish up: type 'sun, finish up' or visit http:\/\/jenkins.khanacademy.org\/job\/([^\/]*)\/parambuild\?([^\n]*)\n\(failed\) abort and roll back: type 'sun, abort' or visit http:\/\/jenkins.khanacademy.org\/job\/([^\/]*)\/parambuild\?(.*)/, handleAfterMonitoring);
+    hearInDeployRoom(robot, /\(failed\) abort: https:\/\/jenkins.khanacademy.org(.*\/stop)$/, handleAfterStart);
+    hearInDeployRoom(robot, /\(successful\) set it as default: type 'sun, set default' or visit https:\/\/jenkins.khanacademy.org\/job\/([^\/]*)\/parambuild\?([^\n]*)\n\(failed\) abort the deploy: type 'sun, abort' or visit https:\/\/jenkins.khanacademy.org\/job\/([^\/]*)\/parambuild\?(.*)/, handleAfterDeploy);
+    hearInDeployRoom(robot, /\(failed\) abort and rollback: https:\/\/jenkins.khanacademy.org(.*\/stop)$/, handleAfterSetDefault);
+    hearInDeployRoom(robot, /\(successful\) finish up: type 'sun, finish up' or visit https:\/\/jenkins.khanacademy.org\/job\/([^\/]*)\/parambuild\?([^\n]*)\n\(failed\) abort and roll back: type 'sun, abort' or visit https:\/\/jenkins.khanacademy.org\/job\/([^\/]*)\/parambuild\?(.*)/, handleAfterMonitoring);
     hearInDeployRoom(robot, /Deploy of .* (failed[:.]|succeeded!)/, handleDeployDone);
     hearInDeployRoom(robot, /has manually released the deploy lock/, handleDeployDone);
 
