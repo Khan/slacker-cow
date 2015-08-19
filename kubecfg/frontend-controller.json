@@ -32,6 +32,22 @@
                    "env":[{
                      "name":"HUBOT_SLACK_TOKEN",
                      "value":"XXX-REPLACE-ME-WITH-SLACK-TOKEN"
+                   },
+                   {
+                     "name":"TRELLO_KEY",
+                     "value":"f9c34634a9a3ec80db3761c07e3ca2e4"
+                   },
+                   {
+                     "name":"TRELLO_TOKEN",
+                     "value":"XXX-REPLACE-ME-WITH-TRELLO-TOKEN"
+                   },
+                   {
+                     "name":"TRELLO_BOARD_ID",
+                     "value":"55b96f151f407080f20c0afe"
+                   },
+                   {
+                     "name":"DEPLOY_ROOM",
+                     "value": "#1s-and-0s-deploys"
                    }]
                }
             ]
