@@ -34,6 +34,10 @@
                      "value":"XXX-REPLACE-ME-WITH-SLACK-TOKEN"
                    },
                    {
+                     "name":"HUBOT_ADAPTER",
+                     "value":"slack"
+                   },
+                   {
                      "name":"DEPLOY_ROOM",
                      "value": "#1s-and-0s-deploys"
                    }]
