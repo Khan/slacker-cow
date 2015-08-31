@@ -37,26 +37,32 @@ Discussion of how to send attachments via hubot-slack:
 ## Making a deploy
 
 ### Prerequisites
+You will need a working gcloud tool for deploying, and a Docker environment to
+build and run docker images.
 
-- Set up your gcloud environment as [per instructions][gcloud-install]. (Note
-  that you can use `brew cask install google-cloud-sdk` instead of their
-  installer, though.)
-  1. Install vagrant, virtualbox, and docker-machine:
-
-        ```
-        brew cask install vagrant virtualbox
-        brew install docker-machine
-        docker-machine create --driver virtualbox khan
-        ```
-
-- make changes
-- build the container with `docker build -t gcr.io/slacker-cow/hubot .`
-- push the container with `gcloud docker push gcr.io/slacker-cow/hubot`
-- edit `kubecfg/frontend-controller.json`:
-  1. increment `frontend-v[x]` to a higher number wherever you see it
-  2. change `XXX-REPLACE-ME-WITH-SLACK-TOKEN` to the correct token
-- run `kubectl rolling-update frontend-v[x] -f kubecfg/frontend-controller.json`
-  where `v[x]` is the old version
-- that's it!
+- Set up the gcloud tool as [per instructions][gcloud-install]. (Note
+  that on Mac you can use `brew cask install google-cloud-sdk` instead of their
+  installer, if you prefer.)
+- Get a working Docker environment setup:
+  - On a Mac, the absolute easiest way to do this is via
+    [Docker Toolbox](https://www.docker.com/toolbox), also
+    available via `brew cask install dockertoolbox`, and follow their
+    ["Installation Guide"](https://docs.docker.com/installation/mac/) guide if
+    you are new.
+  - For Linux, find [instructions for your distro](https://docs.docker.com).
 
 [gcloud-install]: https://cloud.google.com/container-engine/docs/before-you-begin#install_the_gcloud_command_line_interface
+
+### Build and Deploy
+#### Build a new image
+- Make your changes.
+- Build the container with `docker build -t gcr.io/slacker-cow/hubot .`.
+- Push the container with `gcloud docker push gcr.io/slacker-cow/hubot`.
+
+#### Deploy to production
+- Edit `kubecfg/frontend-controller.json`:
+  1. increment `frontend-v[x]` to a higher number wherever you see it
+  2. change `XXX-REPLACE-ME-WITH-SLACK-TOKEN` to the correct token
+- Run `kubectl rolling-update frontend-v[x] -f kubecfg/frontend-controller.json`
+  where `v[x]` is the old version
+- That's it!
