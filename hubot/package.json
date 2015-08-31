@@ -2,8 +2,7 @@
   "name": "slacker-cow",
   "version": "0.0.1",
   "private": true,
-  "author": "Matthew Rothenberg <mroth@khanacademy.org>",
-  "description": "A simple helpful robot for your Company",
+  "description": "Hubot instance for Khan Academy, Slack Edition",
   "dependencies": {
     "babel": "^5.8",
     "coffee-script": "*",
