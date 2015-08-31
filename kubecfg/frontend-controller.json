@@ -38,6 +38,14 @@
                      "value":"slack"
                    },
                    {
+                     "name":"HUBOT_NAME",
+                     "value":"slacker-cow"
+                   },
+                   {
+                     "name":"REDIS_URL",
+                     "value":"redis://redis-master"
+                   },
+                   {
                      "name":"DEPLOY_ROOM",
                      "value": "#1s-and-0s-deploys"
                    }]

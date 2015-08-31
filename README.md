@@ -53,6 +53,31 @@ build and run docker images.
 
 [gcloud-install]: https://cloud.google.com/container-engine/docs/before-you-begin#install_the_gcloud_command_line_interface
 
+### Development
+You can run hubot as a shell instance locally, without requiring an adapter.
+
+To make things easy, a Docker Compose configuration is provided for running
+things locally.  Simply do `docker-compose run hubot` and slacker-cow will be
+fired up in a local shell (compose will make sure a redis image is downloaded,
+activated, and linked to the hubot container if required).
+
+Once loaded, you can interact with it as if you were in a Slack session:
+
+    $ docker-compose run hubot
+    slacker-cow> [Mon Aug 31 2015 15:47:34 GMT+0000 (UTC)] INFO /hubot/scripts/sun.js is using deprecated documentation syntax
+    [Mon Aug 31 2015 15:47:34 GMT+0000 (UTC)] INFO hubot-redis-brain: Discovered redis from REDIS_URL environment variable
+
+    slacker-cow> slacker-cow: ping
+    slacker-cow> PONG
+
+    slacker-cow> sun, finish up
+    slacker-cow> Shell: I'm not going to finish -- it's not time for that. If you disagree, bring it up with Jenkins.
+
+The docker compose configuration automatically mounts the `/hubot/bin` and
+`/hubot/scripts` directories in the container as volumes, so that you can test
+code modifications without rebuilding the image.
+
+
 ### Build and Deploy
 #### Build a new image
 - Make your changes.

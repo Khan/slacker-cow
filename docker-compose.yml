@@ -1,0 +1,14 @@
+hubot:
+  build: .
+  volumes:
+    - ./hubot/bin:/hubot/bin
+    - ./hubot/scripts:/hubot/scripts
+  environment:
+    HUBOT_DEBUG: true
+    HUBOT_ADAPTER: shell
+    HUBOT_NAME: slacker-cow
+  links:
+    - redis
+
+redis:
+  image: redis
