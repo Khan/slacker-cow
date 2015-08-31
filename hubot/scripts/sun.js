@@ -3,7 +3,7 @@
  *   Send prod-deploy commands to jenkins.
  *
  * Dependencies:
- *   ./deploy-queue.js
+ *   None
  *
  * Configuration:
  *   The JENKINS_DEPLOY_TOKEN environment variables must be set.
@@ -11,7 +11,6 @@
  *   module without risking talking to Jenkins.
  *
  * Commands:
- *   sun, add me - adds you to the deploy queue
  *   sun, deploy <branch foo> - deploy a particular branch to production
  *   sun, set default - after a deploy succeeds, sets the deploy as default
  *   sun, abort - abort a deploy (at any point during the process)
@@ -25,7 +24,6 @@
 
 import "https";
 import "querystring";
-import Queue from "../libs/deploy-queue.js";
 
 
 // The room to listen to deployment commands in. For safety reasons,
@@ -50,11 +48,8 @@ var gNextPipelineCommands = {
   setDefault: null,
   abort: null,       // used to cancel *in between* individual jobs
   cancel: null,      // used to cancel a running job
-  finish: null,
+  finish: null
 };
-
-// create the queue singleton
-const queue = new Queue();
 
 // Resets gNextPipelineCommands to indicate what commands are now
 // acceptable (based on the current state of the pipeline).
@@ -158,11 +153,9 @@ function handleDeploy(msg) {
     // In theory this should be an email address but we actually
     // only care about names for the script, so we make up
     // a 'fake' email that yields our name.
-    "BUILD_USER_ID_FROM_SCRIPT": caller + "@khanacademy.org",
+    "BUILD_USER_ID_FROM_SCRIPT": caller + "@khanacademy.org"
   };
   const postData = querystring.stringify(postDataMap);
-
-  queue.startDeploy(caller);
 
   runOnJenkins(msg, postData,
     "Telling Jenkins to deploy branch " + deployBranch + ".");
@@ -170,7 +163,7 @@ function handleDeploy(msg) {
 
 function handleSetDefault(msg) {
   if (!gNextPipelineCommands.setDefault) {
-    wrongPipelineStep(robot, msg, 'set-default');
+    wrongPipelineStep(msg, 'set-default');
     return;
   }
   runOnJenkins(msg, gNextPipelineCommands.setDefault,
@@ -199,7 +192,6 @@ function handleFinish(msg) {
   }
   runOnJenkins(msg, gNextPipelineCommands.finish,
     "Telling Jenkins to finish this deploy!");
-  queue.markSuccess(msg.envelope.user.mention_name);
 }
 
 function handleRollback(msg) {
@@ -214,10 +206,6 @@ function handleEmergencyRollback(msg) {
   runOnJenkins(msg, 'job=' + querystring.escape(jobname),
     "Telling Jenkins to roll back the live site to a safe " +
     "version");
-}
-
-function handleAdd(msg) {
-  queue.enqueue(msg.envelope.user.mention_name);
 }
 
 
@@ -246,7 +234,7 @@ function handleFailedSetDefault(msg) {
     // is abort and roll back.  If someone wants to manually set default,
     // they'll have to finish up on their own (Mr. Gorilla posts a link).
     setNextPipelineCommands({"abort": msg.match[1]});
-};
+}
 
 function handleAfterMonitoring(msg) {
   setNextPipelineCommands(
@@ -257,8 +245,6 @@ function handleAfterMonitoring(msg) {
 }
 
 function handleDeployDone(msg) {
-  queue.deployed();
-
   // The old deploy is over, time to start a new one!
   setNextPipelineCommands({"deploy": true});
 }
@@ -288,7 +274,6 @@ export default robot => {
   hearInDeployRoom(robot, /^sun,\s+rollback.*$/i, handleRollback);
   hearInDeployRoom(robot, /^sun,\s+emergency rollback.*$/i,
     handleEmergencyRollback);
-  hearInDeployRoom(robot, /^sun,\s+add\s+me.*/i, handleAdd);
 
   // These are the Jenkins-emitted messages we listen for.
   hearInDeployRoom(robot, /\(failed\) abort: https:\/\/jenkins.khanacademy.org(.*\/stop)$/, handleAfterStart);
@@ -298,12 +283,4 @@ export default robot => {
   hearInDeployRoom(robot, /\(successful\) finish up: type 'sun, finish up' or visit https:\/\/jenkins.khanacademy.org\/job\/([^\/]*)\/parambuild\?([^\n]*)\n\(failed\) abort and roll back: type 'sun, abort' or visit https:\/\/jenkins.khanacademy.org\/job\/([^\/]*)\/parambuild\?(.*)/, handleAfterMonitoring);
   hearInDeployRoom(robot, /Deploy of .* (failed[:.]|succeeded!)/, handleDeployDone);
   hearInDeployRoom(robot, /has manually released the deploy lock/, handleDeployDone);
-
-  queue.addNotificationCallback(function (user, message, severity) {
-    // TODO(benjaminpollack): reimplement
-  });
-  queue.addSubjectCallback(function (s) {
-    // TODO(benjaminpollack): reimplement
-  });
-  queue.activate(robot);
 };
