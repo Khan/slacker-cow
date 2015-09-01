@@ -63,7 +63,7 @@ activated, and linked to the hubot container if required).
 
 Once loaded, you can interact with it as if you were in a Slack session:
 
-    $ docker-compose run hubot
+    $ docker-compose run --rm hubot
     slacker-cow> [Mon Aug 31 2015 15:47:34 GMT+0000 (UTC)] INFO /hubot/scripts/sun.js is using deprecated documentation syntax
     [Mon Aug 31 2015 15:47:34 GMT+0000 (UTC)] INFO hubot-redis-brain: Discovered redis from REDIS_URL environment variable
 
