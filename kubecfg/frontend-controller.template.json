@@ -2,7 +2,7 @@
    "kind":"ReplicationController",
    "apiVersion":"v1",
    "metadata":{
-      "name":"frontend-v2",
+      "name":"XXX-REPLACE-WITH-NEW-VERSION-XXX",
       "labels":{
          "name":"frontend"
       }
@@ -10,12 +10,12 @@
    "spec":{
       "replicas":1,
       "selector":{
-         "name":"frontend-v2"
+         "name":"XXX-REPLACE-WITH-NEW-VERSION-XXX"
       },
       "template":{
          "metadata":{
             "labels":{
-               "name":"frontend-v2"
+               "name":"XXX-REPLACE-WITH-NEW-VERSION-XXX"
             }
          },
          "spec":{
@@ -31,7 +31,7 @@
                    ],
                    "env":[{
                      "name":"HUBOT_SLACK_TOKEN",
-                     "value":"XXX-REPLACE-ME-WITH-SLACK-TOKEN"
+                     "value":"XXX-REPLACE-WITH-SLACK-TOKEN-XXX"
                    },
                    {
                      "name":"HUBOT_ADAPTER",
