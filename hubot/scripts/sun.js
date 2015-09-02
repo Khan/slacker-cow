@@ -152,7 +152,7 @@ function getRunningJob() {
     const runningIndex = jobIds.findIndex((id, index) => id);
     return {
         jobName: jobs[runningIndex],
-        jobId: jobs[runningIndex],
+        jobId: jobIds[runningIndex],
     };
   });
   return result;
@@ -253,7 +253,7 @@ function handleDeploy(msg, deployState) {
   }
 
   const deployBranch = msg.match[1];
-  const caller = msg.envelope.user.mention_name;
+  const caller = msg.envelope.user.name;
   const postData = {
     "GIT_REVISION": deployBranch,
     // In theory this should be an email address but we actually
@@ -267,7 +267,7 @@ function handleDeploy(msg, deployState) {
 }
 
 function handleSetDefault(msg, deployState) {
-  if (!pipelineStepIsValid(robot, deployState, 'set-default')) {
+  if (!pipelineStepIsValid(deployState, 'set-default')) {
     wrongPipelineStep(msg, 'set-default');
     return;
   }
