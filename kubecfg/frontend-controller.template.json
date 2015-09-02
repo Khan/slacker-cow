@@ -47,7 +47,7 @@
                    },
                    {
                      "name":"DEPLOY_ROOM",
-                     "value": "#1s-and-0s-deploys"
+                     "value": "1s-and-0s-deploys"
                    }]
                }
             ]
