@@ -103,7 +103,6 @@ def main():
     new_version = increment_version(current_version)
     slack_token = get_secret(SLACK_TOKEN_FILE, "K88")
     jenkins_api_token = get_secret(JENKINS_API_TOKEN_FILE, "K92")
-    jenkins_deploy_token = get_secret(JENKINS_DEPLOY_TOKEN_FILE, "K93")
     deploy(current_version, new_version, slack_token, jenkins_api_token,
            jenkins_deploy_token)
 
