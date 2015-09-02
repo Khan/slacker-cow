@@ -4,6 +4,5 @@ node_modules
 .idea
 .slack_token
 .jenkins_api_token
-.jenkins_deploy_token
 
 *.iml

@@ -29,10 +29,6 @@ SLACK_TOKEN_FILE = '.slack_token'
 JENKINS_API_REPLACEMENT = 'XXX-REPLACE-WITH-JENKINS-API-TOKEN-XXX'
 # Path to file containing the Jenkins API token to use
 JENKINS_API_TOKEN_FILE = '.jenkins_api_token'
-# String to replace with the Jenkins deploy token
-JENKINS_DEPLOY_REPLACEMENT = 'XXX-REPLACE-WITH-JENKINS-DEPLOY-TOKEN-XXX'
-# Path to file containing the Jenkins deploy token to use
-JENKINS_DEPLOY_TOKEN_FILE = '.jenkins_deploy_token'
 # Regex to find the current version from kubectl's output
 POD_ID_MATCH = re.compile('frontend-v\d+-[^\s]+', re.MULTILINE)
 
@@ -88,8 +84,6 @@ def deploy(current, new, slack_token, jenkins_api_token, jenkins_deploy_token,
     template = template.replace(VERSION_REPLACEMENT, new)
     template = template.replace(SLACK_REPLACEMENT, slack_token)
     template = template.replace(JENKINS_API_REPLACEMENT, jenkins_api_token)
-    template = template.replace(JENKINS_DEPLOY_REPLACEMENT,
-                                jenkins_deploy_token)
     with tempfile.NamedTemporaryFile(suffix='.json', delete=False)\
             as kube_desc:
         kube_desc.write(template)

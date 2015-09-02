@@ -168,12 +168,6 @@ function runJobOnJenkins(msg, jobName, postData, message) {
     path = `/job/${jobName}/buildWithParameters`;
   }
   
-  // Add some invariants to the post data.
-  // NOTE: this is unrelated to postData.TOKEN, which may be set to make sure
-  // we're hitting the right build.
-  postData.token = process.env.JENKINS_DEPLOY_TOKEN;
-  postData.cause = "Sun Wukong";
-
   runOnJenkins(msg, path, postData, message);
 };
 
