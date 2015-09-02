@@ -77,7 +77,7 @@ def get_secret(filename, passphrase_id):
     return open(filename).read().strip()
 
 
-def deploy(current, new, slack_token, jenkins_api_token, jenkins_deploy_token,
+def deploy(current, new, slack_token, jenkins_api_token,
            delete_desc_file=True):
     """Deploy a new version of slacker-cow."""
     template = open(FRONTEND_TEMPLATE, 'rb').read()
@@ -103,8 +103,7 @@ def main():
     new_version = increment_version(current_version)
     slack_token = get_secret(SLACK_TOKEN_FILE, "K88")
     jenkins_api_token = get_secret(JENKINS_API_TOKEN_FILE, "K92")
-    deploy(current_version, new_version, slack_token, jenkins_api_token,
-           jenkins_deploy_token)
+    deploy(current_version, new_version, slack_token, jenkins_api_token)
 
 if __name__ == '__main__':
     main()
