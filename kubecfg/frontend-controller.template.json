@@ -34,6 +34,14 @@
                      "value":"XXX-REPLACE-WITH-SLACK-TOKEN-XXX"
                    },
                    {
+                     "name":"JENKINS_DEPLOY_TOKEN",
+                     "value":"XXX-REPLACE-WITH-JENKINS-DEPLOY-TOKEN-XXX"
+                   },
+                   {
+                     "name":"JENKINS_API_TOKEN",
+                     "value":"XXX-REPLACE-WITH-JENKINS-API-TOKEN-XXX"
+                   },
+                   {
                      "name":"HUBOT_ADAPTER",
                      "value":"slack"
                    },

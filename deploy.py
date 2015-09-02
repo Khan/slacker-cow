@@ -25,8 +25,24 @@ VERSION_REPLACEMENT = 'XXX-REPLACE-WITH-NEW-VERSION-XXX'
 SLACK_REPLACEMENT = 'XXX-REPLACE-WITH-SLACK-TOKEN-XXX'
 # Path to file containing the Slack API token to use
 SLACK_TOKEN_FILE = '.slack_token'
+# String to replace with the Jenkins API token
+JENKINS_API_REPLACEMENT = 'XXX-REPLACE-WITH-JENKINS-API-TOKEN-XXX'
+# Path to file containing the Jenkins API token to use
+JENKINS_API_TOKEN_FILE = '.jenkins_api_token'
+# String to replace with the Jenkins deploy token
+JENKINS_DEPLOY_REPLACEMENT = 'XXX-REPLACE-WITH-JENKINS-DEPLOY-TOKEN-XXX'
+# Path to file containing the Jenkins deploy token to use
+JENKINS_DEPLOY_TOKEN_FILE = '.jenkins_deploy_token'
 # Regex to find the current version from kubectl's output
 POD_ID_MATCH = re.compile('frontend-v\d+-[^\s]+', re.MULTILINE)
+
+
+def rebuild_image():
+    subprocess.check_output(['docker', 'build',
+                             '-t', 'gcr.io/slacker-cow/hubot',
+                             '.'])
+    subprocess.check_output(['gcloud', 'docker',
+                             'push', 'gcr.io/slacker-cow/hubot'])
 
 
 def get_version(s):
@@ -56,11 +72,24 @@ def increment_version(current_version):
     return '%s-v%s' % (prefix, int(version[1:]) + 1)
 
 
-def deploy(current, new, slack_token, delete_desc_file=True):
+def get_secret(filename, passphrase_id):
+    if not os.path.exists(filename):
+        print(u'Please create a “%s” file with secret %s in it.'
+              % (filename, passphrase_id),
+              file=sys.stderr)
+        exit(1)
+    return open(filename).read().strip()
+
+
+def deploy(current, new, slack_token, jenkins_api_token, jenkins_deploy_token,
+           delete_desc_file=True):
     """Deploy a new version of slacker-cow."""
     template = open(FRONTEND_TEMPLATE, 'rb').read()
     template = template.replace(VERSION_REPLACEMENT, new)
     template = template.replace(SLACK_REPLACEMENT, slack_token)
+    template = template.replace(JENKINS_API_REPLACEMENT, jenkins_api_token)
+    template = template.replace(JENKINS_DEPLOY_REPLACEMENT,
+                                jenkins_deploy_token)
     with tempfile.NamedTemporaryFile(suffix='.json', delete=False)\
             as kube_desc:
         kube_desc.write(template)
@@ -74,16 +103,15 @@ def deploy(current, new, slack_token, delete_desc_file=True):
 
 
 def main():
-    if not os.path.exists(SLACK_TOKEN_FILE):
-        print(u'Please create a “%s” file with secret K88 in it.'
-              % SLACK_TOKEN_FILE,
-              file=sys.stderr)
-        exit(1)
+    rebuild_image()
     pod_id = get_pod_id()
     current_version = get_version(pod_id)
     new_version = increment_version(current_version)
-    slack_token = open(SLACK_TOKEN_FILE).read().strip()
-    deploy(current_version, new_version, slack_token)
+    slack_token = get_secret(SLACK_TOKEN_FILE, "K88")
+    jenkins_api_token = get_secret(JENKINS_API_TOKEN_FILE, "K92")
+    jenkins_deploy_token = get_secret(JENKINS_DEPLOY_TOKEN_FILE, "K93")
+    deploy(current_version, new_version, slack_token, jenkins_api_token,
+           jenkins_deploy_token)
 
 if __name__ == '__main__':
     main()
