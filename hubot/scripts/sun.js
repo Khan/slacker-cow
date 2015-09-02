@@ -22,8 +22,9 @@
  *   csilvers
  */
 
-import "https";
-import "querystring";
+import https from "https";
+import Q from "q";
+import querystring from "querystring";
 
 
 // The room to listen to deployment commands in. For safety reasons,
@@ -36,80 +37,169 @@ const DEPLOYMENT_ROOM = process.env.DEPLOY_ROOM || "#bot-testing";
 // easier debugging
 const DEBUG = !!process.env.HUBOT_DEBUG;
 
-// This is a list of currently allowed deploy commands and the
-// post-data to send to jenkins to have it do that command.  (The
-// exception is 'deploy', where the post-data is determined from the
-// hubot message itself.)  (NOTE: for 'cancel' this holds a GET url,
-// not POST data.)  The list of allowed deploy commands changes as we
-// make our way through the deploy pipeline.
-var gNextPipelineCommands = {
-  // When we start out, the only pipeline step to do is the first one.
-  deploy: true,
-  setDefault: null,
-  abort: null,       // used to cancel *in between* individual jobs
-  cancel: null,      // used to cancel a running job
-  finish: null
-};
-
-// Resets gNextPipelineCommands to indicate what commands are now
-// acceptable (based on the current state of the pipeline).
-function setNextPipelineCommands(newData) {
-  gNextPipelineCommands = {
-    deploy: newData.deploy || false,
-    setDefault: newData.setDefault || null,
-    abort: newData.abort || null,
-    cancel: newData.cancel || null,
-    finish: newData.finish || null
-  };
-}
-
-
-function onHttpError(res) {
+function onHttpError(msg, res) {
   const errorMessage = ("Jenkins won't listen to me.  " +
   "Go talk to it yourself.");
   // The error message usually comes after another message.
   // Wait a second to encourage to put the messages in the
   // right order.
-  setTimeout(() => res.reply(errorMessage), 1000);
+  setTimeout(() => msg.reply(errorMessage), 1000);
 
   // Also log the error to /var/log/upstart/culture-cow.*.  (Recipe from
   // http://nodejs.org/api/http.html#http_http_request_options_callback).
-  console.error('ERROR TALKING TO JENKINS:');
-  console.error('   Status: ' + res.statusCode);
-  console.error('   Headers: ' + JSON.stringify(res.headers));
-  res.setEncoding('utf8');
-  res.on('data', chunk => {
-    console.error('   Body: ' + chunk);
-  });
+  if (res.statusCode) {
+      console.error('ERROR TALKING TO JENKINS:');
+      console.error('   Status: ' + res.statusCode);
+      console.error('   Headers: ' + JSON.stringify(res.headers));
+      res.setEncoding('utf8');
+      res.on('data', chunk => {
+        console.error('   Body: ' + chunk);
+      });
+  } else {
+      console.error(res.stack)
+      console.error(res);
+  }
 }
 
 function wrongRoom(msg) {
   msg.reply("How dare you approach me outside my temple?!");
 }
 
+/**
+ * Return whether the proposed step is valid.
+ */
+function pipelineStepIsValid(deployState, step) {
+  return (deployState &&
+          deployState.POSSIBLE_NEXT_STEPS.indexOf(step) !== -1);
+};
+
 function wrongPipelineStep(msg, badStep) {
   msg.reply("I'm not going to " + badStep + " -- it's not time for that. " +
     "If you disagree, bring it up with Jenkins.");
 }
 
+/**
+ * Get a promise for a URL or node http options object.
+ */
+function httpsGet(url) {
+  const deferred = Q.defer();
+  const req = https.get(url, deferred.resolve);
+  req.on('error', deferred.reject);
+  return deferred.promise;
+};
 
-// postData is a url-encoded string, suitable for sending in the http body.
-function runOnJenkins(msg, postData, message) {
+/**
+ * Get the current state of the deploy from Jenkins.
+ *
+ * Returns a promise for the state.
+ */
+function getDeployState() {
+    return httpsGet("https://jenkins.khanacademy.org/deploy-state.json");
+};
 
+/**
+ * Returns a promise for the current job ID if one is running, or false if not.
+ */
+function jenkinsJobStatus(jobName) {
+  return httpsGet({
+    hostname: 'jenkins.khanacademy.org',
+    port: 443,
+    path: '/job/' + jobName + '/lastBuild/api/json',
+    auth: 'jenkins@khanacademy.org:' + process.env.JENKINS_API_TOKEN
+  }).then(res => {
+    const deferred = Q.defer();
+    if (res.statusCode > 299) {
+      deferred.reject(res);
+    } else {
+      let data = '';
+      res.on('data', chunk => {data += chunk;});
+      res.on('end', () => {
+        data = JSON.parse(data);
+        if (data.building === undefined) {
+          deferred.reject(res);
+        } else if (data.building && !data.number) {
+          deferred.reject(res);
+        } else if (data.building) {
+          deferred.resolve(data.number);
+        } else {
+          deferred.resolve(null);
+        }
+      });
+    }
+    return deferred.promise;
+  });
+};
+
+/**
+ * Get the current running jobs from Jenkins.
+ *
+ * We check the three jobs deploy-via-multijob, deploy-set-default, and
+ * deploy-finish.
+ *
+ * Returns a promise for an object with two keys, jobName (string) and jobId
+ * (number), for the currently running job, or null if there is no job running.
+ *
+ * If, somehow, multiple such jobs are running, return the first one.  This
+ * shouldn't happen.
+ */
+function getRunningJob() {
+  const jobs = ['deploy-via-multijob', 'deploy-set-default', 'deploy-finish'];
+  const result = Q.all(jobs.map(jenkinsJobStatus))
+  .then(jobIds => {
+    // `jobIds` is an array of jenkins job IDs corresponding to the names in
+    // `jobs` (or null if there is none).  We want to find the first non-null
+    // ID, along with the name to which it corresponds.
+    const runningIndex = jobIds.findIndex((id, index) => id);
+    return {
+        jobName: jobs[runningIndex],
+        jobId: jobs[runningIndex],
+    };
+  });
+  return result;
+};
+
+// postData is an object, which we will encode and post to either
+// /job/<job>/build or /job/<job>/buildWithParameters, as appropriate.
+function runJobOnJenkins(msg, jobName, postData, message) {
+  let path;
+  if (Object.keys(postData).length === 0) {  // no parameters
+    path = `/job/${jobName}/build`;
+  } else {
+    path = `/job/${jobName}/buildWithParameters`;
+  }
+  
+  // Add some invariants to the post data.
+  // NOTE: this is unrelated to postData.TOKEN, which may be set to make sure
+  // we're hitting the right build.
+  postData.token = process.env.JENKINS_DEPLOY_TOKEN;
+  postData.cause = "Sun Wukong";
+
+  runOnJenkins(msg, path, postData, message);
+};
+
+
+function cancelJobOnJenkins(msg, jobName, jobId, message) {
+  const path = `/job/${jobName}/${jobId}/stop`;
+  runOnJenkins(msg, path, {}, message);
+};
+
+
+// path should be the URL path; postData should be an object which we will
+// encode.  If allowRedirect is falsy, we will consider a 3xx response an
+// error.  If allowRedirect is truthy, we will consider a 3xx response a
+// success.  (This is because a 302, for instance, might mean that we need to
+// follow a redirect to do the thing we want, or it might mean that we were
+// successful and are now getting redirected to a new page.)
+function runOnJenkins(msg, path, postData, message, allowRedirect) {
   const options = {
     hostname: 'jenkins.khanacademy.org',
     port: 443,
-    path: '/buildByToken/buildWithParameters',
-    method: 'POST'
+    method: 'POST',
+    path: path,
+    auth: 'jenkins@khanacademy.org:' + process.env.JENKINS_API_TOKEN
   };
-  if (postData.indexOf('&') === -1) {       // no parameters except job=...
-    options.path = '/buildByToken/build';
-  }
 
-  // Add some invariants to the post data.  (JENKINS_DEPLOY_TOKEN is
-  // under our control and we know it's url-escape safe.)
-  postData = postData + ("&token=" + process.env.JENKINS_DEPLOY_TOKEN +
-    "&cause=Sun+Wukong");
+  postData = querystring.stringify(postData);
 
   // Tell readers what we're doing.
   msg.reply((DEBUG ? "DEBUG :: " : "") + message);
@@ -123,8 +213,8 @@ function runOnJenkins(msg, postData, message) {
     // Jenkins apparently now sometimes returns 201s for success, so allow
     // that.  We don't want to allow 3xx because that means that whatever
     // we were trying to do wasn't done.
-    if (res.statusCode > 299) {
-      onHttpError(res);
+    if ((!allowRedirect && res.statusCode > 299) || res.statusCode > 399) {
+      onHttpError(msg, res);
     }
   });
 
@@ -136,12 +226,26 @@ function runOnJenkins(msg, postData, message) {
 }
 
 
-function handlePing(msg) {
+function handlePing(msg, deployState) {
   msg.reply("I AM THE MONKEY KING!");
 }
 
-function handleDeploy(msg) {
-  if (!gNextPipelineCommands.deploy && !msg.match[2]) {
+
+function handleState(msg, deployState) {
+  const prettyState = JSON.stringify(deployState, null, 2);
+  getRunningJob().then(job => {
+    const prettyRunningJob = JSON.stringify(job, null, 2);
+    msg.reply("Here's the state of the deploy: ```" +
+              `\n${prettyRunningJob}\n\n${prettyState}\n` + "```");
+  })
+  .catch(err => {
+    // If anywhere along the line we got an error, say so.
+    onHttpError(msg, err);
+  });
+};
+
+function handleDeploy(msg, deployState) {
+  if (deployState.POSSIBLE_NEXT_STEPS) {
     msg.reply("I think there's a deploy already going on.  If that's " +
       "not the case, or you want to start a deploy anyway, say " +
       "'sun, deploy " + msg.match[1] + ", dagnabit'.");
@@ -150,110 +254,109 @@ function handleDeploy(msg) {
 
   const deployBranch = msg.match[1];
   const caller = msg.envelope.user.mention_name;
-  const postDataMap = {
-    "job": "deploy-via-multijob",
+  const postData = {
     "GIT_REVISION": deployBranch,
     // In theory this should be an email address but we actually
     // only care about names for the script, so we make up
     // a 'fake' email that yields our name.
     "BUILD_USER_ID_FROM_SCRIPT": caller + "@khanacademy.org"
   };
-  const postData = querystring.stringify(postDataMap);
 
-  runOnJenkins(msg, postData,
+  runJobOnJenkins(msg, 'deploy-via-multijob', postData,
     "Telling Jenkins to deploy branch " + deployBranch + ".");
 }
 
-function handleSetDefault(msg) {
-  if (!gNextPipelineCommands.setDefault) {
+function handleSetDefault(msg, deployState) {
+  if (!pipelineStepIsValid(robot, deployState, 'set-default')) {
     wrongPipelineStep(msg, 'set-default');
     return;
   }
-  runOnJenkins(msg, gNextPipelineCommands.setDefault,
-    "Telling Jenkins to set default.");
+  const postData = {
+    'TOKEN': deployState.TOKEN
+  };
+  runJobOnJenkins(msg, 'deploy-set-default', postData,
+                  "Telling Jenkins to set default.");
 }
 
-function handleAbort(msg) {
-  if (gNextPipelineCommands.cancel) {
-    runOnJenkins(msg, gNextPipelineCommands.cancel,
-      "Telling Jenkins to cancel this deploy");
+function handleAbort(msg, deployState) {
+  getRunningJob().then(runningJob => {
+    if (runningJob.jobName) {
+      // There's a job running, so we should probably cancel it.
+      if (runningJob.jobName === 'deploy-finish') {
+        // We shouldn't cancel a deploy-finish.  If we need to roll
+        // back, we now need to do an emergency rollback; otherwise we
+        // should just let it finish and then do our thing.
+        msg.reply("I think there's currently a deploy-finish job " +
+                  "running.  If you need to roll back, you will " +
+                  "need to do an emergency rollback ('sun, " +
+                  "emergency rollback').  If not, just let it " +
+                  "finish, or check what it's doing yourself: " +
+                  "https://jenkins.khanacademy.org/job/" +
+                  "deploy-finish/" + runningJob.jobId);
+      } else {
+        // Otherwise, cancel the job.
+        cancelJobOnJenkins(msg, runningJob.jobName, runningJob.jobId,
+                           "Telling Jenkins to cancel " +
+                           runningJob.jobName +
+                           " #" + runningJob.jobId + ".");
+      }
+    } else {
+      // Otherwise, we're between jobs, and we should determine from the
+      // deploy state what to do.
+      const postData = {
+        'TOKEN': deployState.TOKEN,
+        'WHY': 'aborted'
+      };
+      let response;
+      if (pipelineStepIsValid(deployState, 'set-default')) {
+        // If no build is running, and we could set default, we can just as
+        // easily just give up
+        postData.STATUS = 'failure';
+        response = 'abort';
+      } else {
+        // Otherwise, we'd better roll back.
+        postData.STATUS = 'rollback';
+        postData.ROLLBACK_TO = deployState.ROLLBACK_TO;
+        response = 'abort and roll back';
+      }
+      runJobOnJenkins(msg, 'deploy-finish', postData,
+                      "Telling Jenkins to " + response + " this deploy.");
+    }
+  })
+  .catch(err => {
+    // If anywhere along the line we got an error, say so.
+    onHttpError(msg, err);
+  });
+};
+
+function handleFinish(msg, deployState) {
+  if (!pipelineStepIsValid(deployState, 'finish-with-success')) {
+    wrongPipelineStep(msg, 'finish-with-success');
     return;
   }
+  let postData = {
+    'TOKEN': deployState.TOKEN,
+    'STATUS': 'success'
+  };
+  runJobOnJenkins(msg, 'deploy-finish', postData,
+                  "Telling Jenkins to finish this deploy!");
+};
 
-  if (!gNextPipelineCommands.abort) {
-    wrongPipelineStep(msg, 'abort');
-    return;
-  }
-  runOnJenkins(msg, gNextPipelineCommands.abort,
-    "Telling Jenkins to abort this deploy.");
-}
-
-function handleFinish(msg) {
-  if (!gNextPipelineCommands.abort) {
-    wrongPipelineStep(msg, 'finish');
-    return;
-  }
-  runOnJenkins(msg, gNextPipelineCommands.finish,
-    "Telling Jenkins to finish this deploy!");
-}
-
-function handleRollback(msg) {
+function handleRollback(msg, deployState) {
   msg.reply("Are you currently doing a deploy?  Say <b>sun, abort</b> " +
     "instead.  Do you want to roll back the production servers " +
     "because you noticed some problems with them after their " +
     "deploy was finished?  Say <b>sun, emergency rollback</b>.");
 }
 
-function handleEmergencyRollback(msg) {
+function handleEmergencyRollback(msg, deployState) {
   const jobname = '---EMERGENCY-ROLLBACK---';
-  runOnJenkins(msg, 'job=' + querystring.escape(jobname),
+  runJobOnJenkins(msg, jobname, {},
     "Telling Jenkins to roll back the live site to a safe " +
     "version");
 }
 
-
-function _appendJobname(jobname, otherPostParams) {
-  return otherPostParams + '&job=' + querystring.escape(jobname);
-}
-
-function handleAfterStart(msg) {
-  setNextPipelineCommands({"cancel": msg.match[1]});
-}
-
-function handleAfterDeploy(msg) {
-  setNextPipelineCommands(
-    {
-      "setDefault": _appendJobname(msg.match[1], msg.match[2]),
-      "abort": _appendJobname(msg.match[3], msg.match[4])
-    });
-}
-
-function handleAfterSetDefault(msg) {
-  setNextPipelineCommands({"cancel": msg.match[1]});
-}
-
-function handleFailedSetDefault(msg) {
-    // In the case of a failed set-default, the only thing Sun knows how to do
-    // is abort and roll back.  If someone wants to manually set default,
-    // they'll have to finish up on their own (Mr. Gorilla posts a link).
-    setNextPipelineCommands({"abort": msg.match[1]});
-}
-
-function handleAfterMonitoring(msg) {
-  setNextPipelineCommands(
-    {
-      "finish": _appendJobname(msg.match[1], msg.match[2]),
-      "abort": _appendJobname(msg.match[3], msg.match[4])
-    });
-}
-
-function handleDeployDone(msg) {
-  // The old deploy is over, time to start a new one!
-  setNextPipelineCommands({"deploy": true});
-}
-
-
-// fn takes a robot object and a hubot message object.
+// fn takes a robot object and the deploy state.
 function hearInDeployRoom(robot, regexp, fn) {
   robot.hear(regexp, msg => {
     if (!DEBUG && msg.envelope.room !== DEPLOYMENT_ROOM) {
@@ -261,12 +364,28 @@ function hearInDeployRoom(robot, regexp, fn) {
       return;
     }
 
-    fn(msg);
+    getDeployState()
+    .then(res => {
+      const deferred = Q.defer();
+      if (res.statusCode === 404) {
+        deferred.resolve({});
+      } else if (res.statusCode > 299) {
+        deferred.reject(res);
+      } else {
+        let data = '';
+        res.on('data', chunk => {data += chunk;});
+        res.on('end', () => deferred.resolve(JSON.parse(data)));
+      }
+      return deferred.promise;
+    })
+    .then(state => fn(msg, state))
+    .catch(err => onHttpError(msg, err));
   });
 }
 
 export default robot => {
   hearInDeployRoom(robot, /^sun,\s+ping$/i, handlePing);
+  hearInDeployRoom(robot, /^sun,\s+state$/i, handleState);
 
   // These are the user-typed commands we listen for.
   hearInDeployRoom(robot, /^sun,\s+deploy\s+(?:branch\s+)?([^,]*)(, dagnabit)?$/i, handleDeploy);
@@ -277,13 +396,4 @@ export default robot => {
   hearInDeployRoom(robot, /^sun,\s+rollback.*$/i, handleRollback);
   hearInDeployRoom(robot, /^sun,\s+emergency rollback.*$/i,
     handleEmergencyRollback);
-
-  // These are the Jenkins-emitted messages we listen for.
-  hearInDeployRoom(robot, /\(failed\) abort: https:\/\/jenkins.khanacademy.org(.*\/stop)$/, handleAfterStart);
-  hearInDeployRoom(robot, /\(successful\) set it as default: type 'sun, set default' or visit https:\/\/jenkins.khanacademy.org\/job\/([^\/]*)\/parambuild\?([^\n]*)\n\(failed\) abort the deploy: type 'sun, abort' or visit https:\/\/jenkins.khanacademy.org\/job\/([^\/]*)\/parambuild\?(.*)/, handleAfterDeploy);
-  hearInDeployRoom(robot, /\(failed\) abort and rollback: https:\/\/jenkins.khanacademy.org(.*\/stop)$/, handleAfterSetDefault);
-  hearInDeployRoom(robot, /set-default failed.*\(failed\) abort and roll back https:\/\/jenkins.khanacademy.org(.*rollback.*aborted)$/, handleFailedSetDefault);
-  hearInDeployRoom(robot, /\(successful\) finish up: type 'sun, finish up' or visit https:\/\/jenkins.khanacademy.org\/job\/([^\/]*)\/parambuild\?([^\n]*)\n\(failed\) abort and roll back: type 'sun, abort' or visit https:\/\/jenkins.khanacademy.org\/job\/([^\/]*)\/parambuild\?(.*)/, handleAfterMonitoring);
-  hearInDeployRoom(robot, /Deploy of .* (failed[:.]|succeeded!)/, handleDeployDone);
-  hearInDeployRoom(robot, /has manually released the deploy lock/, handleDeployDone);
 };
