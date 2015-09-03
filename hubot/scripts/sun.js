@@ -47,7 +47,7 @@ function replyAsSun(msg, reply) {
       username: "Sun Wukong",
       icon_emoji: ":monkey_face:",
       channel: msg.envelope.room,
-      text: msg.envelope.user.name + ": " + reply,
+      text: "@" + msg.envelope.user.name + " " + reply,
     };
     msg.robot.adapter.customMessage(msgData);
   }
@@ -258,8 +258,8 @@ function handleState(msg, deployState) {
 function handleDeploy(msg, deployState) {
   if (deployState.POSSIBLE_NEXT_STEPS) {
     replyAsSun(msg, "I think there's a deploy already going on.  If that's " +
-      "not the case, or you want to start a deploy anyway, say " +
-      "'sun, deploy " + msg.match[1] + ", dagnabit'.");
+      "not the case, or you want to start a deploy anyway,\n:speech_balloon: " +
+      "_“sun, deploy " + msg.match[1] + ", dagnabit”_.");
     return;
   }
 
@@ -274,7 +274,7 @@ function handleDeploy(msg, deployState) {
   };
 
   runJobOnJenkins(msg, 'deploy-via-multijob', postData,
-    "Telling Jenkins to deploy branch " + deployBranch + ".");
+    "Telling Jenkins to deploy branch `" + deployBranch + "`.");
 }
 
 function handleSetDefault(msg, deployState) {
@@ -286,7 +286,8 @@ function handleSetDefault(msg, deployState) {
     'TOKEN': deployState.TOKEN
   };
   runJobOnJenkins(msg, 'deploy-set-default', postData,
-                  "Telling Jenkins to set default.");
+                  "Telling Jenkins to set `" + deployState.VERSION_NAME +
+                  "` as the default.");
 }
 
 function handleAbort(msg, deployState) {
@@ -299,11 +300,11 @@ function handleAbort(msg, deployState) {
         // should just let it finish and then do our thing.
         replyAsSun(msg, "I think there's currently a deploy-finish job " +
                    "running.  If you need to roll back, you will " +
-                   "need to do an emergency rollback ('sun, " +
-                   "emergency rollback').  If not, just let it " +
-                   "finish, or check what it's doing yourself: " +
-                   "https://jenkins.khanacademy.org/job/" +
-                   "deploy-finish/" + runningJob.jobId);
+                   "need to do an emergency rollback (:speech_balloon: " +
+                   "_“sun, emergency rollback”_).  If not, just let it " +
+                   "finish, or <https://jenkins.khanacademy.org/job/" + 
+                   "deploy-finish/" + runningJob.jobId + "|check what it's" +
+                   "doing> yourself.")
       } else {
         // Otherwise, cancel the job.
         cancelJobOnJenkins(msg, runningJob.jobName, runningJob.jobId,
@@ -315,10 +316,10 @@ function handleAbort(msg, deployState) {
       // If no deploy is in progress, we had better not abort.
       replyAsSun(msg, "I don't think there's a deploy going.  If you need " +
                  "to roll back the production servers because you noticed " +
-                 "some problems after a deploy finished, say 'sun, " +
-                 "emergency rollback'.  If you think there's a deploy " +
-                 "going, then I'm confused and you'll have to talk to " +
-                 "Jenkins yourself.")
+                 "some problems after a deploy finished, :speech_balloon: " +
+                 "_“sun, emergency rollback”_.  If you think there's a " +
+                 "deploy going, then I'm confused and you'll have to talk " +
+                 "to Jenkins yourself.")
     } else {
       // Otherwise, we're between jobs in a deploy, and we should determine
       // from the deploy state what to do.
@@ -362,10 +363,11 @@ function handleFinish(msg, deployState) {
 };
 
 function handleRollback(msg, deployState) {
-  replyAsSun(msg, "Are you currently doing a deploy?  Say *sun, abort* " +
-    "instead.  Do you want to roll back the production servers " +
-    "because you noticed some problems with them after their " +
-    "deploy was finished?  Say *sun, emergency rollback*.");
+  replyAsSun(msg, "Are you currently doing a deploy?\n:speech_balloon: " +
+             "_“sun, abort”_\nDo you want to roll back the production " +
+             "servers because you noticed some problems with them after " +
+             "their deploy was finished?\n:speech_balloon: " +
+             "_“sun, emergency rollback”_.");
 }
 
 function handleEmergencyRollback(msg, deployState) {
