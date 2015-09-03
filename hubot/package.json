@@ -11,7 +11,7 @@
     "hubot-help": "^0.1.1",
     "hubot-redis-brain": "0.0.3",
     "hubot-scripts": "^2.16.1",
-    "hubot-slack": "^3.3.0"
+    "hubot-slack": "git+https://github.com/slackhq/hubot-slack.git#f900ec8cf9949d3c32b8503ab1b7ab08d36878c6"
   },
   "engines": {
     "node": "0.12.x"

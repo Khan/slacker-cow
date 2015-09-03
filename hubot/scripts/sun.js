@@ -37,13 +37,30 @@ const DEPLOYMENT_ROOM = process.env.DEPLOY_ROOM || "#bot-testing";
 // easier debugging
 const DEBUG = !!process.env.HUBOT_DEBUG;
 
+
+function replyAsSun(msg, reply) {
+  if (!msg.robot.adapter.customMessage) {
+    // Allow for testing in the shell, where we don't have our fancy adapter
+    msg.reply(reply);
+  } else {
+    const msgData = {
+      username: "Sun Wukong",
+      icon_emoji: ":monkey_face:",
+      channel: msg.envelope.room,
+      text: msg.envelope.user.name + ": " + reply,
+    };
+    msg.robot.adapter.customMessage(msgData);
+  }
+}
+
+
 function onHttpError(msg, res) {
   const errorMessage = ("Jenkins won't listen to me.  " +
   "Go talk to it yourself.");
   // The error message usually comes after another message.
   // Wait a second to encourage to put the messages in the
   // right order.
-  setTimeout(() => msg.reply(errorMessage), 1000);
+  setTimeout(() => replyAsSun(msg, errorMessage), 1000);
 
   // Also log the error to /var/log/upstart/culture-cow.*.  (Recipe from
   // http://nodejs.org/api/http.html#http_http_request_options_callback).
@@ -62,7 +79,7 @@ function onHttpError(msg, res) {
 }
 
 function wrongRoom(msg) {
-  msg.reply("How dare you approach me outside my temple?!");
+  replyAsSun(msg, "How dare you approach me outside my temple?!");
 }
 
 /**
@@ -74,8 +91,8 @@ function pipelineStepIsValid(deployState, step) {
 };
 
 function wrongPipelineStep(msg, badStep) {
-  msg.reply("I'm not going to " + badStep + " -- it's not time for that. " +
-    "If you disagree, bring it up with Jenkins.");
+  replyAsSun(msg, "I'm not going to " + badStep + " -- it's not time for " +
+             "that.  If you disagree, bring it up with Jenkins.");
 }
 
 /**
@@ -174,7 +191,7 @@ function runJobOnJenkins(msg, jobName, postData, message) {
 
 function cancelJobOnJenkins(msg, jobName, jobId, message) {
   const path = `/job/${jobName}/${jobId}/stop`;
-  runOnJenkins(msg, path, {}, message);
+  runOnJenkins(msg, path, {}, message, true);
 };
 
 
@@ -196,7 +213,7 @@ function runOnJenkins(msg, path, postData, message, allowRedirect) {
   postData = querystring.stringify(postData);
 
   // Tell readers what we're doing.
-  msg.reply((DEBUG ? "DEBUG :: " : "") + message);
+  replyAsSun(msg, (DEBUG ? "DEBUG :: " : "") + message);
 
   if (DEBUG) {
     console.log(options);
@@ -221,7 +238,7 @@ function runOnJenkins(msg, path, postData, message, allowRedirect) {
 
 
 function handlePing(msg, deployState) {
-  msg.reply("I AM THE MONKEY KING!");
+  replyAsSun(msg, "I AM THE MONKEY KING!");
 }
 
 
@@ -229,8 +246,8 @@ function handleState(msg, deployState) {
   const prettyState = JSON.stringify(deployState, null, 2);
   getRunningJob().then(job => {
     const prettyRunningJob = JSON.stringify(job, null, 2);
-    msg.reply("Here's the state of the deploy: ```" +
-              `\n${prettyRunningJob}\n\n${prettyState}\n` + "```");
+    replyAsSun(msg, "Here's the state of the deploy: ```" +
+               `\n${prettyRunningJob}\n\n${prettyState}\n` + "```");
   })
   .catch(err => {
     // If anywhere along the line we got an error, say so.
@@ -240,7 +257,7 @@ function handleState(msg, deployState) {
 
 function handleDeploy(msg, deployState) {
   if (deployState.POSSIBLE_NEXT_STEPS) {
-    msg.reply("I think there's a deploy already going on.  If that's " +
+    replyAsSun(msg, "I think there's a deploy already going on.  If that's " +
       "not the case, or you want to start a deploy anyway, say " +
       "'sun, deploy " + msg.match[1] + ", dagnabit'.");
     return;
@@ -280,13 +297,13 @@ function handleAbort(msg, deployState) {
         // We shouldn't cancel a deploy-finish.  If we need to roll
         // back, we now need to do an emergency rollback; otherwise we
         // should just let it finish and then do our thing.
-        msg.reply("I think there's currently a deploy-finish job " +
-                  "running.  If you need to roll back, you will " +
-                  "need to do an emergency rollback ('sun, " +
-                  "emergency rollback').  If not, just let it " +
-                  "finish, or check what it's doing yourself: " +
-                  "https://jenkins.khanacademy.org/job/" +
-                  "deploy-finish/" + runningJob.jobId);
+        replyAsSun(msg, "I think there's currently a deploy-finish job " +
+                   "running.  If you need to roll back, you will " +
+                   "need to do an emergency rollback ('sun, " +
+                   "emergency rollback').  If not, just let it " +
+                   "finish, or check what it's doing yourself: " +
+                   "https://jenkins.khanacademy.org/job/" +
+                   "deploy-finish/" + runningJob.jobId);
       } else {
         // Otherwise, cancel the job.
         cancelJobOnJenkins(msg, runningJob.jobName, runningJob.jobId,
@@ -296,12 +313,12 @@ function handleAbort(msg, deployState) {
       }
     } else if (!deployState.POSSIBLE_NEXT_STEPS) {
       // If no deploy is in progress, we had better not abort.
-      msg.reply("I don't think there's a deploy going.  If you need to " +
-                "roll back the production servers because you noticed " +
-                "some problems after a deploy finished, say 'sun, " +
-                "emergency rollback'.  If you think there's a deploy " +
-                "going, then I'm confused and you'll have to talk to " +
-                "Jenkins yourself.")
+      replyAsSun(msg, "I don't think there's a deploy going.  If you need " +
+                 "to roll back the production servers because you noticed " +
+                 "some problems after a deploy finished, say 'sun, " +
+                 "emergency rollback'.  If you think there's a deploy " +
+                 "going, then I'm confused and you'll have to talk to " +
+                 "Jenkins yourself.")
     } else {
       // Otherwise, we're between jobs in a deploy, and we should determine
       // from the deploy state what to do.
@@ -345,10 +362,10 @@ function handleFinish(msg, deployState) {
 };
 
 function handleRollback(msg, deployState) {
-  msg.reply("Are you currently doing a deploy?  Say <b>sun, abort</b> " +
+  replyAsSun(msg, "Are you currently doing a deploy?  Say *sun, abort* " +
     "instead.  Do you want to roll back the production servers " +
     "because you noticed some problems with them after their " +
-    "deploy was finished?  Say <b>sun, emergency rollback</b>.");
+    "deploy was finished?  Say *sun, emergency rollback*.");
 }
 
 function handleEmergencyRollback(msg, deployState) {

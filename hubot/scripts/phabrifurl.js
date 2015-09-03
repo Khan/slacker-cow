@@ -6,9 +6,9 @@ export default robot => {
       msg.send('Impressive roll, Padawan Sulu. Oh my.');
     } else {
       const msgData = {
-          sender: "Phabricator Fox",
-          icon_emoji: ":fox:",
-          channel: msg.envelope.room,
+        username: "Phabricator Fox",
+        icon_emoji: ":fox:",
+        channel: msg.envelope.room,
         text: `:phabricator: <https://phabricator.khanacademy.org/${phabID}|${phabID}>`
       };
       robot.adapter.customMessage(msgData);
