@@ -5,7 +5,13 @@ export default robot => {
     if (phabID === 'D20') {
       msg.send('Impressive roll, Padawan Sulu. Oh my.');
     } else {
-      msg.send(`:phabricator: <https://phabricator.khanacademy.org/${phabID}|${phabID}>`);
+      const msgData = {
+          sender: "Phabricator Fox",
+          icon_emoji: ":fox:",
+          channel: msg.envelope.room,
+        text: `:phabricator: <https://phabricator.khanacademy.org/${phabID}|${phabID}>`
+      };
+      robot.adapter.customMessage(msgData);
     }
   });
 };
