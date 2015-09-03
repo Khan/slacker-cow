@@ -47,7 +47,7 @@ function replyAsSun(msg, reply) {
       username: "Sun Wukong",
       icon_emoji: ":monkey_face:",
       channel: msg.envelope.room,
-      text: "@" + msg.envelope.user.name + " " + reply,
+      text: "<@" + msg.envelope.user.name + "> " + reply,
     };
     msg.robot.adapter.customMessage(msgData);
   }
