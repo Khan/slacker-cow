@@ -69,7 +69,7 @@ function wrongRoom(msg) {
  * Return whether the proposed step is valid.
  */
 function pipelineStepIsValid(deployState, step) {
-  return (deployState &&
+  return (deployState.POSSIBLE_NEXT_STEPS &&
           deployState.POSSIBLE_NEXT_STEPS.indexOf(step) !== -1);
 };
 
@@ -294,9 +294,17 @@ function handleAbort(msg, deployState) {
                            runningJob.jobName +
                            " #" + runningJob.jobId + ".");
       }
+    } else if (!deployState.POSSIBLE_NEXT_STEPS) {
+      // If no deploy is in progress, we had better not abort.
+      msg.reply("I don't think there's a deploy going.  If you need to " +
+                "roll back the production servers because you noticed " +
+                "some problems after a deploy finished, say 'sun, " +
+                "emergency rollback'.  If you think there's a deploy " +
+                "going, then I'm confused and you'll have to talk to " +
+                "Jenkins yourself.")
     } else {
-      // Otherwise, we're between jobs, and we should determine from the
-      // deploy state what to do.
+      // Otherwise, we're between jobs in a deploy, and we should determine
+      // from the deploy state what to do.
       const postData = {
         'TOKEN': deployState.TOKEN,
         'WHY': 'aborted'
