@@ -13,6 +13,7 @@ from __future__ import print_function
 
 import os
 import re
+import StringIO
 import sys
 import subprocess
 import tempfile
@@ -34,11 +35,8 @@ POD_ID_MATCH = re.compile('frontend-v\d+-[^\s]+', re.MULTILINE)
 
 
 def rebuild_image():
-    subprocess.check_output(['docker', 'build',
-                             '-t', 'gcr.io/slacker-cow/hubot',
-                             '.'])
-    subprocess.check_output(['gcloud', 'docker',
-                             'push', 'gcr.io/slacker-cow/hubot'])
+    run_command(['docker', 'build', '-t', 'gcr.io/slacker-cow/hubot', '.'])
+    run_command(['gcloud', 'docker', 'push', 'gcr.io/slacker-cow/hubot'])
 
 
 def get_version(s):
@@ -58,7 +56,7 @@ def get_pod_id():
     IDs look like ABC-<random string>; this function will include
     that.
     """
-    pods = subprocess.check_output(['kubectl', 'get', 'pods'])
+    pods = run_command(['kubectl', 'get', 'pods'])
     return POD_ID_MATCH.search(pods).group(0)
 
 
@@ -77,6 +75,27 @@ def get_secret(filename, passphrase_id):
     return open(filename).read().strip()
 
 
+def run_command(command):
+    """Run a subprocess command, but echoing as it goes.
+
+    Returns all of the command output."""
+    process = subprocess.Popen(command, stdout=subprocess.PIPE)
+    output = StringIO.StringIO()
+    while True:
+        next_line = process.stdout.readline()
+        if next_line == '' and process.poll() is not None:
+            break
+        if next_line:
+            print(next_line.strip())
+            output.write(next_line)
+    rc = process.poll()
+    output = output.getvalue()
+    if rc:
+        raise subprocess.CalledProcessError(returncode=rc, cmd=command,
+                                            output=output)
+    return output
+
+
 def deploy(current, new, slack_token, jenkins_api_token,
            delete_desc_file=True):
     """Deploy a new version of slacker-cow."""
@@ -88,9 +107,8 @@ def deploy(current, new, slack_token, jenkins_api_token,
             as kube_desc:
         kube_desc.write(template)
     try:
-        print(subprocess.check_output(
-            ['kubectl', 'rolling-update', current,
-             '-f', kube_desc.name]))
+        run_command(['kubectl',
+                     'rolling-update', current, '-f', kube_desc.name])
     finally:
         if delete_desc_file:
             os.unlink(kube_desc.name)
