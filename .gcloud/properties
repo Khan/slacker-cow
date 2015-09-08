@@ -1,0 +1,5 @@
+[core]
+project = slacker-cow
+
+[container]
+cluster = slacker-cow
