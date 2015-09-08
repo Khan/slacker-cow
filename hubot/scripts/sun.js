@@ -91,8 +91,9 @@ function pipelineStepIsValid(deployState, step) {
 };
 
 function wrongPipelineStep(msg, badStep) {
-  replyAsSun(msg, "I'm not going to " + badStep + " -- it's not time for " +
-             "that.  If you disagree, bring it up with Jenkins.");
+  replyAsSun(msg, `:hal9000: I'm sorry, @${msg.envelope.user.name}.  I'm ` +
+             "afraid I can't let you do that.  (It's not time to " +
+             `${badStep}.  If you disagree, bring it up with Jenkins.)`);
 }
 
 /**
@@ -255,6 +256,10 @@ function handleState(msg, deployState) {
   });
 };
 
+function handlePodBayDoors(msg, deployState) {
+  wrongPipelineStep(msg, 'open the pod bay doors');
+}
+
 function handleDeploy(msg, deployState) {
   if (deployState.POSSIBLE_NEXT_STEPS) {
     replyAsSun(msg, "I think there's a deploy already going on.  If that's " +
@@ -407,6 +412,8 @@ function hearInDeployRoom(robot, regexp, fn) {
 export default robot => {
   hearInDeployRoom(robot, /^sun,\s+ping$/i, handlePing);
   hearInDeployRoom(robot, /^sun,\s+state$/i, handleState);
+  hearInDeployRoom(robot, /^sun,\s+open the pod bay doors/i,
+                   handlePodBayDoors);
 
   // These are the user-typed commands we listen for.
   hearInDeployRoom(robot, /^sun,\s+deploy\s+(?:branch\s+)?([^,]*)(, dagnabit)?$/i, handleDeploy);
