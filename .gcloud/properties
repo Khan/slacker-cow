@@ -1,9 +1,2 @@
 [core]
 project = slacker-cow
-
-[container]
-cluster = slacker-cow
-
-[compute]
-zone = us-central1-b
-

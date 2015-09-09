@@ -4,5 +4,6 @@ node_modules
 .idea
 .slack_token
 .jenkins_api_token
-
 *.iml
+app.yaml
+*.log

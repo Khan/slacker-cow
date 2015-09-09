@@ -1,0 +1,57 @@
+#!/usr/bin/env python
+# -*- coding: utf-8; -*-
+
+"""Automate deploying Slacker Cow updates.
+
+Right now this just builds an app.yaml with appropriate secrets.
+"""
+
+from __future__ import print_function
+
+import os
+import re
+import StringIO
+import sys
+import subprocess
+import tempfile
+
+# Location of the app.yaml template
+APPFILE_TEMPLATE = 'app.template.yaml'
+# String to replace with the new version stamp
+VERSION_REPLACEMENT = 'XXX-REPLACE-WITH-NEW-VERSION-XXX'
+# String to replace with the Slack API token
+SLACK_REPLACEMENT = 'XXX-REPLACE-WITH-SLACK-TOKEN-XXX'
+# Path to file containing the Slack API token to use
+SLACK_TOKEN_FILE = '.slack_token'
+# String to replace with the Jenkins API token
+JENKINS_API_REPLACEMENT = 'XXX-REPLACE-WITH-JENKINS-API-TOKEN-XXX'
+# Path to file containing the Jenkins API token to use
+JENKINS_API_TOKEN_FILE = '.jenkins_api_token'
+
+
+def get_secret(filename, passphrase_id):
+    """Get a secret from the local build environment."""
+    if not os.path.exists(filename):
+        print(u'Please create a “%s” file with secret %s in it.'
+              % (filename, passphrase_id),
+              file=sys.stderr)
+        exit(1)
+    return open(filename).read().strip()
+
+
+def build_appfile(slack_token, jenkins_api_token):
+    """Build app.yaml from the template inserting necessary secrets."""
+    template = open(APPFILE_TEMPLATE, 'rb').read()
+    template = template.replace(SLACK_REPLACEMENT, slack_token)
+    template = template.replace(JENKINS_API_REPLACEMENT, jenkins_api_token)
+    with open('app.yaml', 'w') as appfile:
+        appfile.write(template)
+
+
+def main():
+    slack_token = get_secret(SLACK_TOKEN_FILE, "K88")
+    jenkins_api_token = get_secret(JENKINS_API_TOKEN_FILE, "K92")
+    build_appfile(slack_token, jenkins_api_token)
+
+if __name__ == '__main__':
+    main()
