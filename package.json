@@ -17,6 +17,7 @@
     "node": "0.12.x"
   },
   "scripts": {
-    "start": "bin/hubot --name slacker-cow"
+    "start": "bin/hubot --name slacker-cow",
+    "predeploy": "build-scripts/predeploy"
   }
 }
