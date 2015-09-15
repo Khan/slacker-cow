@@ -22,8 +22,7 @@ For simian deploy magic, head over to Khan/khan-sun.
 ## Making a deploy
 
 ### Prerequisites
-You will need a working gcloud tool for deploying, and a Docker environment to
-test the hubot locally.
+You will need a working gcloud tool and a Docker environment for deploying.
 
 - Set up the gcloud tool as [per instructions][gcloud-install]. (Note
   that on Mac you can use `brew cask install google-cloud-sdk` instead of their
