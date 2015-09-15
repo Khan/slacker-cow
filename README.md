@@ -48,14 +48,10 @@ activated, and linked to the hubot container if required).
 Once loaded, you can interact with it as if you were in a Slack session:
 
     $ docker-compose run --rm hubot
-    slacker-cow> [Mon Aug 31 2015 15:47:34 GMT+0000 (UTC)] INFO /hubot/scripts/sun.js is using deprecated documentation syntax
-    [Mon Aug 31 2015 15:47:34 GMT+0000 (UTC)] INFO hubot-redis-brain: Discovered redis from REDIS_URL environment variable
+    slacker-cow> [Mon Aug 31 2015 15:47:34 GMT+0000 (UTC)] INFO hubot-redis-brain: Discovered redis from REDIS_URL environment variable
 
     slacker-cow> slacker-cow: ping
     slacker-cow> PONG
-
-    slacker-cow> sun, finish up
-    slacker-cow> Shell: I'm not going to finish -- it's not time for that. If you disagree, bring it up with Jenkins.
 
 The docker compose configuration automatically mounts the `/hubot/bin` and
 `/hubot/scripts` directories in the container as volumes, so that you can test
